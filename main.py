@@ -90,6 +90,10 @@ class Application:
             # make sure the path is absolute
             path = os.path.join(os.getcwd(), path)
 
+            # make sure the directory for output is present
+            if not os.path.isdir(path):
+                os.makedirs(path)
+
             # assign path to blender output
             bpy.context.scene.render.filepath = os.path.join(path, "f_")
 
