@@ -53,6 +53,17 @@ class Application:
         # read configs
         self._read_config()
 
+        # open blender scene
+        bpy.ops.wm.open_mainfile(filepath=self.blender_file)
+
+    def render_camera(self, camera_name: str, range_start: int, range_end: int):
+        """
+        Renders frames from the perspective of the given camera in scene
+        :param camera_name: name of the camera in scene
+        :param range_start: frame starting range
+        :param range_end: frame ending range
+        """
+
 
 def main():
     app = Application()
