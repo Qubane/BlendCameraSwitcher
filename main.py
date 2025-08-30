@@ -120,6 +120,9 @@ class Application:
         # update view
         bpy.context.view_layer.update()
 
+        # do render
+        bpy.ops.render.render(animation=True)
+
 
 def main():
     app = Application()
