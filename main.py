@@ -3,6 +3,8 @@ Main file
 """
 
 
+import bpy
+import json
 import argparse
 
 
@@ -13,6 +15,8 @@ class Application:
 
     def __init__(self):
         self.blender_file: str = ""
+
+        self.config: dict[str, dict] | None = None
 
     def _parse(self):
         """
@@ -29,10 +33,25 @@ class Application:
 
         self.blender_file = args.input
 
+    def _read_config(self):
+        """
+        Reads the config file
+        """
+
+        # read file
+        with open("camera_ranges.json", "r") as file:
+            self.config = json.load(file)
+
     def run(self):
         """
         Runs the application
         """
+
+        # parse cli arguments
+        self._parse()
+
+        # read configs
+        self._read_config()
 
 
 def main():
