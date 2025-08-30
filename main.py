@@ -35,6 +35,10 @@ class Application:
         parser.add_argument("-o", "--output",
                             help="blender output directory",
                             default="frames")
+        parser.add_argument("--render-device",
+                            help="blender used rendering device",
+                            default="CPU",
+                            choices=["CPU", "CUDA", "OPTIX", "HIP", "ONEAPI"])
 
         args = parser.parse_args()
 
