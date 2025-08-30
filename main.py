@@ -17,6 +17,7 @@ class Application:
     def __init__(self):
         self.blender_file: str = ""
         self.output_directory: str = ""
+        self.render_device: str = ""
 
         self.scene_cameras: list = []
 
@@ -46,6 +47,7 @@ class Application:
         self.output_directory = args.output
         if not os.path.isdir(self.output_directory):
             os.makedirs(self.output_directory)
+        self.render_device = args.render_device
 
     def _read_config(self):
         """
