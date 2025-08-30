@@ -3,6 +3,7 @@ Main file
 """
 
 
+import os
 import bpy
 import json
 import argparse
@@ -15,6 +16,7 @@ class Application:
 
     def __init__(self):
         self.blender_file: str = ""
+        self.output_directory: str = ""
 
         self.config: dict[str, dict] | None = None
 
@@ -28,10 +30,16 @@ class Application:
         parser.add_argument("-i", "--input",
                             help="blender input file",
                             required=True)
+        parser.add_argument("-o", "--output",
+                            help="blender output directory",
+                            default="frames")
 
         args = parser.parse_args()
 
         self.blender_file = args.input
+        self.output_directory = os.path.dirname(args.output)
+        if not os.path.isdir(self.output_directory):
+            os.makedirs(self.output_directory)
 
     def _read_config(self):
         """
@@ -55,6 +63,19 @@ class Application:
 
         # open blender scene
         bpy.ops.wm.open_mainfile(filepath=self.blender_file)
+
+        # read cameras
+        scene_cameras = [obj for obj in bpy.data.objects if obj.type == 'CAMERA']
+        scene_camera_names = [camera.name for camera in scene_cameras]
+
+        # ensure the cameras are present in config
+        for config_camera in self.config.keys():
+            if config_camera not in scene_camera_names:
+                raise KeyError
+
+        # make render
+        for config_camera, config_data in self.config.items():
+            path = config_data["path"] if config_data["path"] is not None else config_camera
 
     def render_camera(self, camera_name: str, range_start: int, range_end: int):
         """
