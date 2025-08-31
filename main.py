@@ -105,7 +105,7 @@ class Application:
                 delta = frame_range[1] - frame_range[0]
                 if delta < 0:
                     raise ValueError("Negative frame delta range")
-                total_frame_count += delta
+                total_frame_count += delta + 1
 
         # print frame metadata
         print(f"Total frame count is {total_frame_count} frames, at {scene_framerate} fps;")
