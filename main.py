@@ -139,8 +139,7 @@ class Application:
 
             # go through ranges and render them
             for frame_range in config_data["ranges"]:
-                ...
-                # self.render_camera(config_camera, frame_range[0], frame_range[1])
+                self.render_camera(config_camera, frame_range[0], frame_range[1])
 
     def render_camera(self, camera_name: str, range_start: int, range_end: int):
         """
