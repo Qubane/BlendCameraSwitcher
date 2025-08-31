@@ -91,6 +91,18 @@ class Application:
         # disable overwrites
         bpy.context.scene.render.use_overwrite = False
 
+        # count number of frames
+        scene_framerate = bpy.context.scene.render.fps
+        total_frame_count = 0
+        for _, config_data in self.config.items():
+            for frame_range in config_data["ranges"]:
+                delta = frame_range[1] - frame_range[0]
+                if delta < 0:
+                    raise ValueError("Negative frame delta range")
+                total_frame_count += delta
+        print(f"Total frame count is {total_frame_count} frames;")
+        print(f"Scene duration is {total_frame_count / scene_framerate / 60:.2f} minutes")
+
         # make render
         for config_camera, config_data in self.config.items():
             path = config_data.get("path")
@@ -115,7 +127,8 @@ class Application:
 
             # go through ranges and render them
             for frame_range in config_data["ranges"]:
-                self.render_camera(config_camera, frame_range[0], frame_range[1])
+                ...
+                # self.render_camera(config_camera, frame_range[0], frame_range[1])
 
     def render_camera(self, camera_name: str, range_start: int, range_end: int):
         """
