@@ -100,8 +100,20 @@ class Application:
                 if delta < 0:
                     raise ValueError("Negative frame delta range")
                 total_frame_count += delta
-        print(f"Total frame count is {total_frame_count} frames;")
-        print(f"Scene duration is {total_frame_count / scene_framerate / 60:.2f} minutes")
+
+        # print frame metadata
+        print(f"Total frame count is {total_frame_count} frames, at {scene_framerate} fps;")
+        print(f"Scene duration is {total_frame_count / scene_framerate / 60:.2f} minutes;")
+
+        # print rendering metadata
+        print(f"Scene rendering engine set to '{bpy.context.scene.render.engine}';")
+
+        resolution_x = int(bpy.context.scene.render.resolution_x * bpy.context.scene.render.resolution_percentage / 100)
+        resolution_y = int(bpy.context.scene.render.resolution_y * bpy.context.scene.render.resolution_percentage / 100)
+        print(f"Scene resolution set to {resolution_x}x{resolution_y}")
+
+        # separator
+        print()
 
         # make render
         for config_camera, config_data in self.config.items():
