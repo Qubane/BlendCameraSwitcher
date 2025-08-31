@@ -136,14 +136,17 @@ class Application:
             # make sure the path is absolute
             path = os.path.join(os.getcwd(), path)
 
-            # make sure the directory for output is present
-            if not os.path.isdir(path):
-                os.makedirs(path)
-
             # go through ranges and render them
             for frame_range in config_data["ranges"]:
+                # make range path
+                range_path = os.path.join(path, f"{frame_range[0]}-{frame_range[1]}")
+
+                # make sure the directory for output is present
+                if not os.path.isdir(range_path):
+                    os.makedirs(range_path)
+
                 # assign path to blender output
-                bpy.context.scene.render.filepath = os.path.join(path, f"[{frame_range[0]}-{frame_range[1]}]_")
+                bpy.context.scene.render.filepath = os.path.join(range_path, "f_")
 
                 # render
                 self.render_camera(config_camera, frame_range[0], frame_range[1])
