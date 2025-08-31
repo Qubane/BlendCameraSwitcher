@@ -88,6 +88,9 @@ class Application:
         else:
             bpy.context.scene.cycles.device = "CPU"
 
+        # disable overwrites
+        bpy.context.scene.render.use_overwrite = False
+
         # make render
         for config_camera, config_data in self.config.items():
             path = config_data.get("path")
