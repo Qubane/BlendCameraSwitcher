@@ -82,9 +82,15 @@ class Application:
                 raise KeyError(f"Camera '{config_camera}' not found!")
 
         # switch rendering device
+        cycles_prefs = bpy.context.preferences.addons['cycles'].preferences
+        cycles_prefs.get_devices()
         if self.render_device != "CPU":
             bpy.context.scene.cycles.device = "GPU"
-            bpy.context.scene.cycles.compute_device_type = self.render_device
+            cycles_prefs.compute_device_type = self.render_device
+
+            for device in cycles_prefs.devices:
+                if "GPU" in device.type:
+                    device.use = True
         else:
             bpy.context.scene.cycles.device = "CPU"
 
