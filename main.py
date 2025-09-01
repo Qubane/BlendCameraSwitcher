@@ -4,9 +4,37 @@ Main file
 
 
 import os
+import sys
 import bpy
 import json
 import argparse
+from contextlib import contextmanager
+
+
+@contextmanager
+def stdout_redirected(to=os.devnull):
+    """
+    import os
+
+    with stdout_redirected(to=filename):
+        print("from Python")
+        os.system("echo non-Python applications are also supported")
+    """
+
+    fd = sys.stdout.fileno()
+
+    def _redirect_stdout(redirect):
+        sys.stdout.close()
+        os.dup2(redirect.fileno(), fd)
+        sys.stdout = os.fdopen(fd, 'w')
+
+    with os.fdopen(os.dup(fd), 'w') as old_stdout:
+        with open(to, 'w') as file:
+            _redirect_stdout(redirect=file)
+        try:
+            yield
+        finally:
+            _redirect_stdout(redirect=old_stdout)
 
 
 class Application:
@@ -174,7 +202,8 @@ class Application:
         bpy.context.view_layer.update()
 
         # do render
-        bpy.ops.render.render(animation=True)
+        with stdout_redirected():
+            bpy.ops.render.render(animation=True)
 
 
 def main():
