@@ -179,8 +179,14 @@ class Application:
                 # assign path to blender output
                 bpy.context.scene.render.filepath = os.path.join(range_path, "f_")
 
+                # print current range
+                print(f"Rendering camera '{config_camera}' range {frame_range[0]}..{frame_range[1]}")
+
                 # render
                 self.render_camera(config_camera, frame_range[0], frame_range[1])
+
+                # print finish
+                print(f"Done rendering {frame_range[1] - frame_range[0]} frames;", end="\n\n")
 
     def render_camera(self, camera_name: str, range_start: int, range_end: int):
         """
