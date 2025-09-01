@@ -92,7 +92,7 @@ class Application:
             cycles_prefs.compute_device_type = self.render_device
 
             for device in cycles_prefs.devices:
-                if "GPU" in device.type:
+                if self.render_device == device.type:
                     device.use = True
         else:
             bpy.context.scene.cycles.device = "CPU"
