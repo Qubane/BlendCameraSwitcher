@@ -15,12 +15,15 @@ class Application:
     """
 
     def __init__(self):
+        # argparser
         self.blender_file: str = ""
         self.output_directory: str = ""
         self.render_device: str = ""
 
+        # blender rendering
         self.scene_cameras: list = []
 
+        # config
         self.config: dict[str, dict] | None = None
 
     def _parse(self):
