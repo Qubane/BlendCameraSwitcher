@@ -26,6 +26,9 @@ class Application:
         # config
         self.config: dict[str, dict] | None = None
 
+        # magic number
+        self._blender_frame_digit_count: int = 6
+
     def _parse(self):
         """
         Parse CLI arguments
@@ -119,7 +122,7 @@ class Application:
         range_start = render_range[0]
         for frame_idx in range(render_range[0], render_range[1] + 1):
             frame_format = bpy.context.scene.render.image_settings.file_format.lower()
-            frame_path = os.path.join(path, f"f_{frame_idx:0>6}.{frame_format}")
+            frame_path = os.path.join(path, f"f_{frame_idx:0>{self._blender_frame_digit_count}}.{frame_format}")
             if os.path.isfile(frame_path):
                 range_start = frame_idx
         return range_start, render_range[1]
@@ -153,7 +156,7 @@ class Application:
                            f"\"{self.blender_file}\" "
                            f"-s {frame_range[0]} "
                            f"-e {frame_range[1]} "
-                           f"-o \"{path}\\f_######\" "
+                           f"-o \"{path}\\f_{'#' * self._blender_frame_digit_count}\" "
                            f"-P camera_switcher.py "
                            f"-a "
                            f"-- --camera-name \"{config_camera}\" "
