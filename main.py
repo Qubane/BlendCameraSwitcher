@@ -48,9 +48,6 @@ class Application:
         self.output_directory: str = ""
         self.render_device: str = ""
 
-        # blender rendering
-        self.scene_cameras: list = []
-
         # config
         self.config: dict[str, dict] | None = None
 
@@ -103,30 +100,10 @@ class Application:
         # open blender scene
         bpy.ops.wm.open_mainfile(filepath=self.blender_file)
 
-        # read cameras
-        self.scene_cameras = [obj for obj in bpy.data.objects if obj.type == 'CAMERA']
-        scene_camera_names = [camera.name for camera in self.scene_cameras]
-
         # ensure the cameras are present in config
         for config_camera in self.config.keys():
-            if config_camera not in scene_camera_names:
+            if bpy.data.objects.get(config_camera) is None:
                 raise KeyError(f"Camera '{config_camera}' not found!")
-
-        # switch rendering device
-        cycles_prefs = bpy.context.preferences.addons['cycles'].preferences
-        cycles_prefs.get_devices()
-        if self.render_device != "CPU":
-            bpy.context.scene.cycles.device = "GPU"
-            cycles_prefs.compute_device_type = self.render_device
-
-            for device in cycles_prefs.devices:
-                if self.render_device == device.type:
-                    device.use = True
-        else:
-            bpy.context.scene.cycles.device = "CPU"
-
-        # disable overwrites
-        bpy.context.scene.render.use_overwrite = False
 
         # count number of frames
         scene_framerate = bpy.context.scene.render.fps
