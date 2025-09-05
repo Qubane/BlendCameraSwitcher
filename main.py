@@ -137,12 +137,14 @@ class Application:
                 # start rendering process
                 await self.make_render_process(command)
 
-    async def make_render_process(self, command: str):
+    @staticmethod
+    async def make_render_process(command: str):
         """
         Makes a rendering process
         :param command: shell command
         """
 
+        # print
         print(f"Executing:\n\t{command}")
 
         # create subprocess
@@ -152,6 +154,7 @@ class Application:
             stderr=asyncio.subprocess.PIPE)
         stdout, stderr = await proc.communicate()
 
+        # print
         print(stdout.decode("ASCII"), end="\n\n")
 
 
