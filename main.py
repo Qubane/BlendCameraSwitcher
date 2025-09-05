@@ -163,7 +163,7 @@ class Application:
                            f"--cycles-device {self.render_device}")
 
                 # start rendering process
-                # await self.make_render_process(command)
+                await self.make_render_process(command)
 
     @staticmethod
     async def make_render_process(command: str):
