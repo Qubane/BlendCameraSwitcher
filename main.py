@@ -107,6 +107,15 @@ class Application:
         # start coro
         asyncio.run(self._running_coro())
 
+    def give_render_range(self, render_range: tuple[int, int], path: str):
+        """
+        Counts frames and gives the appropriate number of frames that still need to be rendered.
+        Used to avoid starting blender process and closing it after rendering 0 frames.
+        :param render_range: rendering range (range that will be checked)
+        :param path: path to frames
+        :return: new range
+        """
+
     async def _running_coro(self):
         """
         Running render coroutine
