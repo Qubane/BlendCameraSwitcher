@@ -107,7 +107,7 @@ class Application:
         # start coro
         asyncio.run(self._running_coro())
 
-    def give_render_range(self, render_range: tuple[int, int], path: str):
+    def give_render_range(self, render_range: tuple[int, int], path: str) -> tuple[int, int]:
         """
         Counts frames and gives the appropriate number of frames that still need to be rendered.
         Used to avoid starting blender process and closing it after rendering 0 frames.
@@ -115,6 +115,14 @@ class Application:
         :param path: path to frames
         :return: new range
         """
+
+        range_start = render_range[0]
+        for frame_idx in range(render_range[0], render_range[1] + 1):
+            frame_format = bpy.context.scene.render.image_settings.file_format.lower()
+            frame_path = os.path.join(path, f"f_{frame_idx:0>6}.{frame_format}")
+            if os.path.isfile(frame_path):
+                range_start = frame_idx
+        return range_start, render_range[1]
 
     async def _running_coro(self):
         """
@@ -131,20 +139,28 @@ class Application:
                 if not os.path.isdir(path):
                     os.makedirs(path)
 
+                # calculate frame range
+                frame_range = self.give_render_range(frame_range, path)
+
+                # check if frame range is zero in length, and skip
+                if frame_range[0] == frame_range[1]:
+                    print(f"Skipped range {frame_range[0]} - {frame_range[1]}")
+                    continue
+
                 # make render command
                 command = (f"blender "
                            f"-b "
                            f"\"{self.blender_file}\" "
                            f"-s {frame_range[0]} "
                            f"-e {frame_range[1]} "
-                           f"-o \"{path}\\f_\" "
+                           f"-o \"{path}\\f_######\" "
                            f"-P camera_switcher.py "
                            f"-a "
                            f"-- --camera-name \"{config_camera}\" "
                            f"--cycles-device {self.render_device}")
 
                 # start rendering process
-                await self.make_render_process(command)
+                # await self.make_render_process(command)
 
     @staticmethod
     async def make_render_process(command: str):
