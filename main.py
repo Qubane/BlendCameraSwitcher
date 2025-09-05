@@ -7,34 +7,9 @@ import os
 import sys
 import bpy
 import json
+import asyncio
 import argparse
 from contextlib import contextmanager
-
-
-@contextmanager
-def stdout_redirected(to=os.devnull):
-    """
-    import os
-
-    with stdout_redirected(to=filename):
-        print("from Python")
-        os.system("echo non-Python applications are also supported")
-    """
-
-    fd = sys.stdout.fileno()
-
-    def _redirect_stdout(redirect):
-        sys.stdout.close()
-        os.dup2(redirect.fileno(), fd)
-        sys.stdout = os.fdopen(fd, 'w')
-
-    with os.fdopen(os.dup(fd), 'w') as old_stdout:
-        with open(to, 'w') as file:
-            _redirect_stdout(redirect=file)
-        try:
-            yield
-        finally:
-            _redirect_stdout(redirect=old_stdout)
 
 
 class Application:
@@ -130,63 +105,51 @@ class Application:
         print()
 
         # make render
-        for config_camera, config_data in self.config.items():
-            path = config_data.get("path")
+        async def coro():
+            for config_camera, config_data in self.config.items():
+                for frame_range in config_data["ranges"]:
+                    # make directory path
+                    path = os.path.join(
+                        os.getcwd(), self.output_directory, config_camera, f"{frame_range[0]}-{frame_range[1]}")
 
-            # if path was not provided
-            if path is None:
-                path = os.path.join(self.output_directory, config_camera)
+                    # make sure directory exists
+                    if not os.path.isdir(path):
+                        os.makedirs(path)
 
-            # if path is relative
-            elif path[:2].replace("\\", "/") == "//":
-                path = os.path.join(self.output_directory, path[2:])
+                    # make render command
+                    command = (f"blender "
+                               f"-b "
+                               f"\"{self.blender_file}\" "
+                               f"-s {frame_range[0]} "
+                               f"-e {frame_range[1]} "
+                               f"-o \"{path}\\f_\" "
+                               f"-P camera_switcher.py "
+                               f"-a "
+                               f"-- --camera-name \"{config_camera}\" "
+                               f"--cycles-device {self.render_device}")
 
-            # make sure the path is absolute
-            path = os.path.join(os.getcwd(), path)
+                    # start rendering process
+                    await self.make_render_process(command)
 
-            # go through ranges and render them
-            for frame_range in config_data["ranges"]:
-                # make range path
-                range_path = os.path.join(path, f"{frame_range[0]}-{frame_range[1]}")
+        # start coro
+        asyncio.run(coro())
 
-                # make sure the directory for output is present
-                if not os.path.isdir(range_path):
-                    os.makedirs(range_path)
-
-                # assign path to blender output
-                bpy.context.scene.render.filepath = os.path.join(range_path, "f_")
-
-                # print current range
-                print(f"Rendering camera '{config_camera}' range {frame_range[0]}..{frame_range[1]}")
-
-                # render
-                self.render_camera(config_camera, frame_range[0], frame_range[1])
-
-                # print finish
-                print(f"Done rendering {frame_range[1] - frame_range[0]} frames;", end="\n\n")
-
-    def render_camera(self, camera_name: str, range_start: int, range_end: int):
+    async def make_render_process(self, command: str):
         """
-        Renders frames from the perspective of the given camera in scene
-        :param camera_name: name of the camera in scene
-        :param range_start: frame starting range
-        :param range_end: frame ending range
+        Makes a rendering process
+        :param command: shell command
         """
 
-        # update frame ranges
-        bpy.context.scene.frame_start = range_start
-        bpy.context.scene.frame_end = range_end
+        print(f"Executing:\n\t{command}")
 
-        # switch camera
-        camera = [camera for camera in self.scene_cameras if camera.name == camera_name][0]
-        bpy.context.scene.camera = camera
+        # create subprocess
+        proc = await asyncio.create_subprocess_shell(
+            command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE)
+        stdout, stderr = await proc.communicate()
 
-        # update view
-        bpy.context.view_layer.update()
-
-        # do render
-        with stdout_redirected():
-            bpy.ops.render.render(animation=True)
+        print(stdout.decode("ASCII"), end="\n\n")
 
 
 def main():
