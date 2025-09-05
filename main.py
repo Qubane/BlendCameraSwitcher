@@ -104,35 +104,38 @@ class Application:
         # separator
         print()
 
-        # make render
-        async def coro():
-            for config_camera, config_data in self.config.items():
-                for frame_range in config_data["ranges"]:
-                    # make directory path
-                    path = os.path.join(
-                        os.getcwd(), self.output_directory, config_camera, f"{frame_range[0]}-{frame_range[1]}")
-
-                    # make sure directory exists
-                    if not os.path.isdir(path):
-                        os.makedirs(path)
-
-                    # make render command
-                    command = (f"blender "
-                               f"-b "
-                               f"\"{self.blender_file}\" "
-                               f"-s {frame_range[0]} "
-                               f"-e {frame_range[1]} "
-                               f"-o \"{path}\\f_\" "
-                               f"-P camera_switcher.py "
-                               f"-a "
-                               f"-- --camera-name \"{config_camera}\" "
-                               f"--cycles-device {self.render_device}")
-
-                    # start rendering process
-                    await self.make_render_process(command)
-
         # start coro
-        asyncio.run(coro())
+        asyncio.run(self._running_coro())
+
+    async def _running_coro(self):
+        """
+        Running render coroutine
+        """
+
+        for config_camera, config_data in self.config.items():
+            for frame_range in config_data["ranges"]:
+                # make directory path
+                path = os.path.join(
+                    os.getcwd(), self.output_directory, config_camera, f"{frame_range[0]}-{frame_range[1]}")
+
+                # make sure directory exists
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+
+                # make render command
+                command = (f"blender "
+                           f"-b "
+                           f"\"{self.blender_file}\" "
+                           f"-s {frame_range[0]} "
+                           f"-e {frame_range[1]} "
+                           f"-o \"{path}\\f_\" "
+                           f"-P camera_switcher.py "
+                           f"-a "
+                           f"-- --camera-name \"{config_camera}\" "
+                           f"--cycles-device {self.render_device}")
+
+                # start rendering process
+                await self.make_render_process(command)
 
     async def make_render_process(self, command: str):
         """
