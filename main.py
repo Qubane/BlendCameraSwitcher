@@ -125,6 +125,8 @@ class Application:
             frame_path = os.path.join(path, f"f_{frame_idx:0>{self._blender_frame_digit_count}}.{frame_format}")
             if os.path.isfile(frame_path):
                 range_start = frame_idx
+            else:
+                break
         return range_start, render_range[1]
 
     async def _running_coro(self):
@@ -143,19 +145,19 @@ class Application:
                     os.makedirs(path)
 
                 # calculate frame range
-                frame_range = self.give_render_range(frame_range, path)
+                new_frame_range = self.give_render_range(frame_range, path)
 
                 # check if frame range is zero in length, and skip
-                if frame_range[0] == frame_range[1]:
-                    print(f"Skipped range {frame_range[0]} - {frame_range[1]}")
+                if new_frame_range[0] == new_frame_range[1]:
+                    print(f"Skipped range {frame_range[0]} - {frame_range[1]} [{config_camera}]")
                     continue
 
                 # make render command
                 command = (f"blender "
                            f"-b "
                            f"\"{self.blender_file}\" "
-                           f"-s {frame_range[0]} "
-                           f"-e {frame_range[1]} "
+                           f"-s {new_frame_range[0]} "
+                           f"-e {new_frame_range[1]} "
                            f"-o \"{path}\\f_{'#' * self._blender_frame_digit_count}\" "
                            f"-P camera_switcher.py "
                            f"-a "
