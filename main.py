@@ -4,12 +4,11 @@ Main file
 
 
 import os
-import sys
 import bpy
 import json
 import asyncio
 import argparse
-from contextlib import contextmanager
+from tqdm import tqdm
 
 
 class Application:
@@ -164,8 +163,33 @@ class Application:
                            f"-- --camera-name \"{config_camera}\" "
                            f"--cycles-device {self.render_device}")
 
+                # print
+                print(f"Executing:\n\t{command}", end="\n\n")
+
                 # start rendering process
-                await self.make_render_process(command)
+                task = asyncio.create_task(self.make_render_process(command))
+
+                # count frames
+                progress_bar = tqdm(total=frame_range[1] - frame_range[0], desc="Frames rendered")
+                progress_bar.update(new_frame_range[0] - frame_range[0])
+                previous_frame = new_frame_range[0]
+
+                # continue rendering progress bar while there are still frames to render
+                while not task.done():
+                    # wait to avoid slowdowns
+                    await asyncio.sleep(0.25)
+
+                    # check render range
+                    current_frame, _ = self.give_render_range((previous_frame, new_frame_range[1]), path)
+
+                    # update progress bar
+                    progress_bar.update(current_frame - previous_frame)
+
+                    # set previous frame
+                    previous_frame = current_frame
+
+                # after finishing close progress bar
+                progress_bar.close()
 
     @staticmethod
     async def make_render_process(command: str):
@@ -174,18 +198,12 @@ class Application:
         :param command: shell command
         """
 
-        # print
-        print(f"Executing:\n\t{command}")
-
         # create subprocess
         proc = await asyncio.create_subprocess_shell(
             command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
         stdout, stderr = await proc.communicate()
-
-        # print
-        print(stdout.decode("ASCII"), end="\n\n")
 
 
 def main():
