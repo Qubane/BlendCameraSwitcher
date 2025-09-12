@@ -22,6 +22,7 @@ class Application:
         self.output_directory: str = ""
         self.render_devices: list[str] = []
         self.batch_size: int = 10
+        self.thread_count: int = 1
 
         # config
         self.config: dict[str, dict] | None = None
@@ -45,6 +46,12 @@ class Application:
         parser.add_argument("--render-devices",
                             help="blender used rendering devices separated by comma",
                             default="CPU")
+        parser.add_argument("-B", "--batch-size",
+                            help="size of rendering batches",
+                            default="10")
+        parser.add_argument("-t", "--threads",
+                            help="number of assigned CPU threads (when using CPU rendering device)",
+                            default="1")
 
         args = parser.parse_args()
 
@@ -53,6 +60,14 @@ class Application:
         if not os.path.isdir(self.output_directory):
             os.makedirs(self.output_directory)
         self.render_devices = [x.strip() for x in args.render_devices.split(",") if x]
+        try:
+            self.batch_size = int(args.batch_size)
+        except ValueError:
+            raise argparse.ArgumentError(args.batch_size, "Wrong integer value")
+        try:
+            self.thread_count = int(args.threads)
+        except ValueError:
+            raise argparse.ArgumentError(args.threads, "Wrong integer value")
 
     def _read_config(self):
         """
@@ -225,6 +240,7 @@ class Application:
         command = (f"blender "
                    f"-b "
                    f"\"{self.blender_file}\" "
+                   f"-t {self.thread_count} "
                    f"-s {frame_start} "
                    f"-e {frame_end} "
                    f"-o \"{path}\\f_{'#' * self._blender_frame_digit_count}\" "
