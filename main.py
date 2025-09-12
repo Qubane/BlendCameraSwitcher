@@ -20,8 +20,7 @@ class Application:
         # argparser
         self.blender_file: str = ""
         self.output_directory: str = ""
-        self.render_devices: list[str] = []
-        self.batch_size: int = 10
+        self.render_device: str = ""
 
         # config
         self.config: dict[str, dict] | None = None
@@ -42,9 +41,10 @@ class Application:
         parser.add_argument("-o", "--output",
                             help="blender output directory",
                             default="frames")
-        parser.add_argument("--render-devices",
-                            help="blender used rendering devices separated by comma",
-                            default="CPU")
+        parser.add_argument("--render-device",
+                            help="blender used rendering device",
+                            default="CPU",
+                            choices=["CPU", "CUDA", "OPTIX", "HIP", "ONEAPI"])
 
         args = parser.parse_args()
 
@@ -52,7 +52,7 @@ class Application:
         self.output_directory = args.output
         if not os.path.isdir(self.output_directory):
             os.makedirs(self.output_directory)
-        self.render_devices = [x.strip() for x in args.render_devices.split(",") if x]
+        self.render_device = args.render_device
 
     def _read_config(self):
         """
@@ -133,11 +133,6 @@ class Application:
         Running render coroutine
         """
 
-        # render queue
-        render_queue: list[dict[str, str | int]] = []
-
-        # create queue
-        device_switcher = 0
         for config_camera, config_data in self.config.items():
             for frame_range in config_data["ranges"]:
                 # make directory path
@@ -148,7 +143,7 @@ class Application:
                 if not os.path.isdir(path):
                     os.makedirs(path)
 
-                # calculate new frame range
+                # calculate frame range
                 new_frame_range = self.give_render_range(frame_range, path)
 
                 # check if frame range is zero in length, and skip
@@ -156,88 +151,52 @@ class Application:
                     print(f"Skipped range {frame_range[0]} - {frame_range[1]} [{config_camera}]")
                     continue
 
-                # split render range into batches
-                for batch_idx in range(new_frame_range[0], new_frame_range[1], self.batch_size + 1):
-                    # calculate rendering ranges
-                    frame_range_start = batch_idx
-                    frame_range_end = min(new_frame_range[1], batch_idx + self.batch_size)
+                # make render command
+                command = (f"blender "
+                           f"-b "
+                           f"\"{self.blender_file}\" "
+                           f"-s {new_frame_range[0]} "
+                           f"-e {new_frame_range[1]} "
+                           f"-o \"{path}\\f_{'#' * self._blender_frame_digit_count}\" "
+                           f"-P camera_switcher.py "
+                           f"-a "
+                           f"-- --camera-name \"{config_camera}\" "
+                           f"--cycles-device {self.render_device}")
 
-                    # append command to queue
-                    render_queue.append({
-                        "frame_start": frame_range_start,
-                        "frame_end": frame_range_end,
-                        "path": path,
-                        "camera": config_camera,
-                        "device": self.render_devices[device_switcher]})
+                # print
+                print(f"Executing:\n\t{command}", end="\n\n")
 
-                    # change device
-                    device_switcher = (device_switcher + 1) % len(self.render_devices)
+                # start rendering process
+                task = asyncio.create_task(self.make_render_process(command))
 
-        # assign rendering tasks
-        tasks = []
-        while len(render_queue) > 0:
-            # fetch queue task
-            queue_task = render_queue.pop(0)
+                # count frames
+                progress_bar = tqdm(total=frame_range[1] - frame_range[0], desc="Frames rendered")
+                progress_bar.update(new_frame_range[0] - frame_range[0])
+                previous_frame = new_frame_range[0]
 
-            # append task
-            tasks.append(asyncio.create_task(self.make_render_process(**queue_task)))
+                # continue rendering progress bar while there are still frames to render
+                while not task.done():
+                    # wait to avoid slowdowns
+                    await asyncio.sleep(0.25)
 
-            # if there are equal (or more) amount of tasks and rendering devices start them
-            if len(tasks) >= len(self.render_devices):
-                await asyncio.gather(*tasks)
+                    # check render range
+                    current_frame, _ = self.give_render_range((previous_frame, new_frame_range[1]), path)
 
-                # clear tasks
-                tasks.clear()
+                    # update progress bar
+                    progress_bar.update(current_frame - previous_frame)
 
-    async def make_render_process(self, frame_start: int, frame_end: int, path: str, camera: str, device: str):
+                    # set previous frame
+                    previous_frame = current_frame
+
+                # after finishing close progress bar
+                progress_bar.close()
+
+    @staticmethod
+    async def make_render_process(command: str):
         """
         Makes a rendering process
-        :param frame_start: frame starting range
-        :param frame_end: frame ending range
-        :param path: frame writing directory
-        :param camera: assigned camera
-        :param device: assigned device
+        :param command: shell command
         """
-
-        # progress bar coroutine
-        async def progress_bar_coro():
-            # create progress bar
-            progress_bar = tqdm(total=frame_end - frame_start, desc=f"Frames rendered [{device}]")
-
-            # begin checking loop
-            previous_frame = frame_start
-            while previous_frame != frame_end:
-                await asyncio.sleep(0.25)
-
-                # check render range
-                current_frame, _ = self.give_render_range((previous_frame, frame_end), path)
-
-                # update progress bar
-                progress_bar.update(current_frame - previous_frame)
-
-                # set previous frame
-                previous_frame = current_frame
-
-            # after finishing close progress bar
-            progress_bar.close()
-
-        # make render command
-        command = (f"blender "
-                   f"-b "
-                   f"\"{self.blender_file}\" "
-                   f"-s {frame_start} "
-                   f"-e {frame_end} "
-                   f"-o \"{path}\\f_{'#' * self._blender_frame_digit_count}\" "
-                   f"-P camera_switcher.py "
-                   f"-a "
-                   f"-- --camera-name \"{camera}\" "
-                   f"--cycles-device {device}")
-
-        # print
-        print(f"Executing:\n\t{command}", end="\n\n")
-
-        # start the progress bar
-        task = asyncio.create_task(progress_bar_coro())
 
         # create subprocess
         proc = await asyncio.create_subprocess_shell(
