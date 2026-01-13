@@ -1,9 +1,23 @@
 {
-  "Camera.Front": [
-    [0, 100],
-    [150, 200]
-  ],
-  "Camera.Side": [
-    [200, 250]
-  ]
+  "render_options": {
+    "preview_quality": {
+      "resolution": [1280, 720],
+      "noise_threshold": 0.2,
+      "max_samples": 64
+    },
+    "final_quality": {
+      "resolution": [1920, 1080],
+      "noise_threshold": 0.02,
+      "max_samples": 4096
+    }
+  },
+  "render_ranges": {
+    "Camera.Front": [
+      [0, 100],
+      [150, 200]
+    ],
+    "Camera.Side": [
+      [200, 250]
+    ]
+  }
 }
