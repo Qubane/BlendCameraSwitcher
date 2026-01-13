@@ -3,6 +3,7 @@ Main application file
 """
 
 
+import json
 import argparse
 
 
@@ -13,7 +14,7 @@ class Application:
 
     def __init__(self):
         self.blender_file_path: str = ""
-        self.script_path: str = ""
+        self.script: dict[str, list[list]] | None = None
 
     def parse_args(self):
         """
@@ -36,7 +37,18 @@ class Application:
 
         # save parsed arguments
         self.blender_file_path = args.input
-        self.script_path = args.script
+        self.script = self._read_script_file(args.script)
+
+    @staticmethod
+    def _read_script_file(path: str) -> dict[str, list[list]]:
+        """
+        Parses script file
+        :param path: path to script file
+        :return: dict
+        """
+
+        with open(path, "r", encoding="utf-8") as file:
+            return json.load(file)
 
     def run(self):
         """
