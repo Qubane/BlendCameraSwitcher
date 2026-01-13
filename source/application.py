@@ -3,6 +3,7 @@ Main application file
 """
 
 
+import bpy
 import json
 import argparse
 
@@ -15,6 +16,9 @@ class Application:
     def __init__(self):
         self.blender_file_path: str = ""
         self.script: dict[str, list[list]] | None = None
+        self.frame_filename: str = "{num:0>6}.{ext}"
+
+        self._blender_output: str = "//tmp/"
 
     def parse_args(self):
         """
@@ -32,12 +36,17 @@ class Application:
             "-s", "--script",
             help="camera sequence script",
             required=True)
+        parser.add_argument(
+            "--frame-name",
+            help="output frame name",
+            default=self.frame_filename)
 
         args = parser.parse_args()
 
         # save parsed arguments
         self.blender_file_path = args.input
         self.script = self._read_script_file(args.script)
+        self.frame_filename = args.frame_name
 
     @staticmethod
     def _read_script_file(path: str) -> dict[str, list[list]]:
