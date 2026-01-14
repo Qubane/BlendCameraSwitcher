@@ -47,6 +47,9 @@ class Application:
         self.blender_framerate: int = 30
         self.blender_out_directory: str = "//tmp/"
 
+        self._frame_filepath: str = "{camera}/{range}/"
+        self._frame_filename: str = "######.png"
+
     def parse_args(self):
         """
         Parses CLI arguments
@@ -113,6 +116,13 @@ class Application:
         """
 
         self.parse_args()
+        self.parse_blender_file(self.blender_file_path)
+        self._update_ranges()
+
+    def _update_ranges(self):
+        """
+        Updates ranges for rendering
+        """
 
     def parse_blender_file(self, path: str):
         """
@@ -123,8 +133,9 @@ class Application:
         # open blender file
         bpy.ops.wm.open_mainfile(filepath=path)
 
-        # fetch framerate
+        # fetch basic info
         self.blender_framerate = bpy.context.scene.render.fps
+        self.blender_out_directory = bpy.context.scene.render.filepath
 
         # check camera presence
         for camera in self.render_ranges.keys():
