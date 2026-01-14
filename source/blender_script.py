@@ -17,8 +17,25 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Script that is passed to blender")
 
     # define arguments
-    parser.add_argument("--camera")
+    parser.add_argument("--camera", required=True)
     parser.add_argument("--overwrite", action="store_true")
 
     # parse arguments after the first `--`
     return parser.parse_args(sys.argv[sys.argv.index("--")+1:])
+
+
+def main():
+    args = parse_args()
+
+    # fetch and update target camera
+    bpy.context.scene.camera = bpy.data.objects.get(args.camera)
+
+    # update view layer
+    bpy.context.view_layer.update()
+
+    # update overwrite flag
+    bpy.context.scene.render.use_overwrite = args.overwrite
+
+
+if __name__ == "__main__":
+    main()
