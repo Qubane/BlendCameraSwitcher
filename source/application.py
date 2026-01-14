@@ -95,7 +95,7 @@ class Application:
         # go through options
         for render_option_name, render_option in script["render_options"].items():
             # parse options
-            render_options[render_option_name] = RenderOption(*render_option)
+            render_options[render_option_name] = RenderOption(*render_option.values())
         # go through ranges
         for render_range_camera, render_ranges_list in script["render_ranges"].items():
             # create list of ranges for camera
