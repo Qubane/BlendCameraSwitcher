@@ -32,7 +32,7 @@ def main():
     args = parse_args()
 
     # fetch and update target camera
-    bpy.context.scene.camera = bpy.data.objects.get(args.camera)
+    bpy.context.scene.camera = bpy.data.objects.get(args.camera[1:-1])
 
     # update render width and height
     bpy.context.scene.render.resolution_x = args.render_width
@@ -40,7 +40,7 @@ def main():
     bpy.context.scene.render.resolution_percentage = 100  # make sure the percentage is 100%
 
     # update noise threshold
-    bpy.context.scene.cycles.adaptive_sampling_enable = True  # make sure adaptive sampling is enabled
+    bpy.context.scene.cycles.use_adaptive_sampling = True  # make sure adaptive sampling is enabled
     bpy.context.scene.cycles.adaptive_threshold = args.render_noise_threshold
 
     # update max samples
