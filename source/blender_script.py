@@ -31,6 +31,9 @@ def parse_args():
 def main():
     args = parse_args()
 
+    # ensure correct scene is being used
+    bpy.context.window.scene = bpy.data.scenes.get("Scene")
+
     # fetch and update target camera
     bpy.context.scene.camera = bpy.data.objects.get(args.camera[1:-1])
 
