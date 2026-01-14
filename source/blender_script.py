@@ -18,6 +18,10 @@ def parse_args():
 
     # define arguments
     parser.add_argument("--camera", required=True)
+    parser.add_argument("--render-width", type=int)
+    parser.add_argument("--render-height", type=int)
+    parser.add_argument("--render-noise-threshold", type=float)
+    parser.add_argument("--render-max-samples", type=int)
     parser.add_argument("--overwrite", action="store_true")
 
     # parse arguments after the first `--`
@@ -29,6 +33,18 @@ def main():
 
     # fetch and update target camera
     bpy.context.scene.camera = bpy.data.objects.get(args.camera)
+
+    # update render width and height
+    bpy.context.scene.render.resolution_x = args.render_width
+    bpy.context.scene.render.resolution_y = args.render_height
+    bpy.context.scene.render.resolution_percentage = 100  # make sure the percentage is 100%
+
+    # update noise threshold
+    bpy.context.scene.cycles.adaptive_sampling_enable = True  # make sure adaptive sampling is enabled
+    bpy.context.scene.cycles.adaptive_threshold = args.render_noise_threshold
+
+    # update max samples
+    bpy.context.scene.cycles.samples = args.render_max_samples
 
     # update view layer
     bpy.context.view_layer.update()
