@@ -3,6 +3,7 @@ Main application file
 """
 
 
+import os
 import bpy
 import json
 import argparse
@@ -134,8 +135,13 @@ class Application:
         bpy.ops.wm.open_mainfile(filepath=path)
 
         # fetch basic info
-        self.blender_framerate = bpy.context.scene.render.fps
-        self.blender_out_directory = bpy.context.scene.render.filepath
+        self.blender_framerate: int = bpy.context.scene.render.fps
+        self.blender_out_directory: str = bpy.context.scene.render.filepath
+
+        # make path
+        self.blender_out_directory = (self.blender_out_directory
+                                      .replace("//", os.path.dirname(path) + "/")
+                                      .replace("\\", "/"))
 
         # check camera presence
         for camera in self.render_ranges.keys():
