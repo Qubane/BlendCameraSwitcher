@@ -204,7 +204,6 @@ class Application:
 
         # open blender file
         bpy.ops.wm.open_mainfile(filepath=path)
-        bpy.context.window.scene = bpy.data.scenes.get("Scene")
 
         # fetch basic info
         self.blender_framerate: int = bpy.context.scene.render.fps
