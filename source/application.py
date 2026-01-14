@@ -39,6 +39,7 @@ class Application:
     def __init__(self):
         self.blender_file_path: str = ""
 
+        self.render_overwrite: bool = False
         self.render_quality: str = "preview"
         self.render_options: dict[str, RenderOption] | None = None
         self.render_ranges: dict[str, list[RenderRange]] | None = None
@@ -71,12 +72,17 @@ class Application:
             "--quality",
             help="pick render quality setting",
             default=self.render_quality)
+        parser.add_argument(
+            "--overwrite",
+            help="overwrite the rendered frames",
+            action='store_true')
 
         args = parser.parse_args()
 
         # save parsed arguments
         self.blender_file_path = args.input
         self.render_quality = args.quality
+        self.render_overwrite = args.overwrite
 
         self.render_options, self.render_ranges = self._parse_script_file(args.script)
 
@@ -129,7 +135,8 @@ class Application:
         self.parse_args()
         self.parse_blender_file(self.blender_file_path)
         self._make_directories()
-        self._update_ranges()
+        if not self.render_overwrite:
+            self._update_ranges()
 
     def _make_directories(self):
         """
