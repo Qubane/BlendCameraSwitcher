@@ -1,11 +1,11 @@
 {
   "render_options": {
-    "preview_quality": {
+    "preview": {
       "resolution": [1280, 720],
       "noise_threshold": 0.2,
       "max_samples": 64
     },
-    "final_quality": {
+    "final": {
       "resolution": [1920, 1080],
       "noise_threshold": 0.02,
       "max_samples": 4096
