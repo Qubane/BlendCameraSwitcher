@@ -254,7 +254,7 @@ class Application:
                            f"--render-width {render_option.resolution[0]} "
                            f"--render-height {render_option.resolution[1]} "
                            f"--render-noise-threshold {render_option.noise_threshold} "
-                           f"--render-max-samples {render_option.max_samples}"
+                           f"--render-max-samples {render_option.max_samples} "
                            f"{'--overwrite' if self.render_overwrite else ''}")
 
                 # execute the command
