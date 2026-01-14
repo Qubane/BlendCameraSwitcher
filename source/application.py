@@ -40,8 +40,8 @@ class Application:
         self.blender_file_path: str = ""
 
         self.render_quality: str = "preview"
-        self.render_options: dict[RenderOption] | None = None
-        self.render_ranges: dict[list[RenderRange]] | None = None
+        self.render_options: dict[str, RenderOption] | None = None
+        self.render_ranges: dict[str, list[RenderRange]] | None = None
 
         self.render_frames_total: int = 0
 
@@ -49,7 +49,7 @@ class Application:
         self.blender_out_directory: str = "//tmp/"
 
         self._frame_filepath: str = "{camera}/{range}/"
-        self._frame_filename: str = "######.png"
+        self._frame_filename: str = "######.{ext}"
 
     def parse_args(self):
         """
@@ -111,6 +111,16 @@ class Application:
         # return
         return render_options, render_ranges
 
+    @staticmethod
+    def _render_range_path(render_range: RenderRange) -> str:
+        """
+        Returns render range path
+        :param render_range: render range
+        :return: path
+        """
+
+        return f"{render_range.range_start}-{render_range.range_end}"
+
     def run(self):
         """
         Runs the application
@@ -118,12 +128,63 @@ class Application:
 
         self.parse_args()
         self.parse_blender_file(self.blender_file_path)
+        self._make_directories()
         self._update_ranges()
+
+    def _make_directories(self):
+        """
+        Makes output directories
+        """
+
+        # make main output directory
+        os.makedirs(self.blender_out_directory, exist_ok=True)
+
+        # make directories for cameras and camera render ranges
+        for camera, camera_render_ranges in self.render_ranges.items():
+            for render_range in camera_render_ranges:
+                path = os.path.join(self.blender_out_directory, camera, self._render_range_path(render_range))
+                os.makedirs(path, exist_ok=True)
 
     def _update_ranges(self):
         """
         Updates ranges for rendering
         """
+
+        # generate f-string file format
+        file_format = (self._frame_filename
+                       .replace("#", f"{{num:0>{self._frame_filename.count('#')}}}", 1)
+                       .replace("#", ""))
+
+        # go through cameras
+        for camera, camera_ranges in self.render_ranges.items():
+            # go through camera render ranges
+            for idx, render_range in enumerate(camera_ranges):
+                # generate directory path to camera and camera range
+                check_path = os.path.join(self.blender_out_directory, camera, self._render_range_path(render_range))
+
+                # go through frames and skip frames if they are already present
+                actual_range_start = render_range.range_start
+                for frame in range(render_range.range_start, render_range.range_end + 1):
+                    # create filepath to check
+                    filepath = os.path.join(check_path, file_format.format(num=frame))
+
+                    # if frame with in that range is already present -> increment the actual range start to skip it
+                    # during rendering phase
+                    if os.path.isfile(filepath):
+                        actual_range_start += 1
+                    else:
+                        break
+
+                # update the camera range
+                camera_ranges[idx] = RenderRange(actual_range_start, render_range.range_end)
+
+            # go through camera render ranges and delete ones with delta <= 0
+            idx = 0
+            while idx < len(camera_ranges):
+                if camera_ranges[idx].range_end - camera_ranges[idx].range_start <= 0:
+                    camera_ranges.pop(idx)
+                    idx -= 1
+                idx += 1
 
     def parse_blender_file(self, path: str):
         """
@@ -137,11 +198,13 @@ class Application:
         # fetch basic info
         self.blender_framerate: int = bpy.context.scene.render.fps
         self.blender_out_directory: str = bpy.context.scene.render.filepath
+        self._frame_filename = self._frame_filename.format(
+            ext=bpy.context.scene.render.image_settings.file_format.lower())
 
         # make path
         self.blender_out_directory = (self.blender_out_directory
-                                      .replace("//", os.path.dirname(path) + "/")
-                                      .replace("\\", "/"))
+                                      .replace("\\", "/")
+                                      .replace("//", os.path.dirname(path) + "/"))
 
         # check camera presence
         for camera in self.render_ranges.keys():
