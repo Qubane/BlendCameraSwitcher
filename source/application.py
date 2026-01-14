@@ -138,7 +138,11 @@ class Application:
         self.parse_blender_file(self.blender_file_path)
         self._make_directories()
         self._update_ranges()
-        self.begin_render()
+
+        try:
+            self.begin_render()
+        except KeyboardInterrupt:
+            print("Exited...")
 
     def _make_directories(self):
         """
