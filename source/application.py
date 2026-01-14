@@ -30,6 +30,7 @@ class RenderRange:
 
     range_start: int
     range_end: int
+    actual_range_start: int = 0
 
 
 class Application:
@@ -136,8 +137,7 @@ class Application:
         self.parse_args()
         self.parse_blender_file(self.blender_file_path)
         self._make_directories()
-        if not self.render_overwrite:
-            self._update_ranges()
+        self._update_ranges()
         self.begin_render()
 
     def _make_directories(self):
@@ -173,24 +173,25 @@ class Application:
 
                 # go through frames and skip frames if they are already present
                 actual_range_start = render_range.range_start
-                for frame in range(render_range.range_start, render_range.range_end + 1):
-                    # create filepath to check
-                    filepath = os.path.join(check_path, file_format.format(num=frame))
+                if not self.render_overwrite:
+                    for frame in range(render_range.range_start, render_range.range_end + 1):
+                        # create filepath to check
+                        filepath = os.path.join(check_path, file_format.format(num=frame))
 
-                    # if frame with in that range is already present -> increment the actual range start to skip it
-                    # during rendering phase
-                    if os.path.isfile(filepath):
-                        actual_range_start += 1
-                    else:
-                        break
+                        # if frame with in that range is already present -> increment the actual range start to skip it
+                        # during rendering phase
+                        if os.path.isfile(filepath):
+                            actual_range_start += 1
+                        else:
+                            break
 
                 # update the camera range
-                camera_ranges[idx] = RenderRange(actual_range_start, render_range.range_end)
+                camera_ranges[idx] = RenderRange(render_range.range_start, render_range.range_end, actual_range_start)
 
             # go through camera render ranges and delete ones with delta <= 0
             idx = 0
             while idx < len(camera_ranges):
-                if camera_ranges[idx].range_end - camera_ranges[idx].range_start <= 0:
+                if camera_ranges[idx].range_end - camera_ranges[idx].actual_range_start <= 0:
                     camera_ranges.pop(idx)
                     idx -= 1
                 idx += 1
@@ -242,7 +243,7 @@ class Application:
                 # generate CLI command
                 command = (f"blender "
                            f"-b \"{self.blender_file_path}\" "
-                           f"-s {render_range.range_start} "
+                           f"-s {render_range.actual_range_start} "
                            f"-e {render_range.range_end} "
                            f"-o \"{output_path}\" "
                            f"-P \"source/blender_script.py\" "
