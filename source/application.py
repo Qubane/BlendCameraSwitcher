@@ -7,6 +7,7 @@ import os
 import bpy
 import json
 import argparse
+import subprocess
 from dataclasses import dataclass
 
 
@@ -137,6 +138,7 @@ class Application:
         self._make_directories()
         if not self.render_overwrite:
             self._update_ranges()
+        self.begin_render()
 
     def _make_directories(self):
         """
@@ -217,3 +219,41 @@ class Application:
         for camera in self.render_ranges.keys():
             if not bpy.data.objects.get(camera):
                 raise KeyError(f"Missing camera with name '{camera}'")
+
+    def begin_render(self):
+        """
+        Starts the actual rendering
+        """
+
+        # get option preset
+        render_option = self.render_options[self.render_quality]
+
+        # go through cameras
+        for camera, camera_ranges in self.render_ranges.items():
+            # go through camera render ranges
+            for render_range in camera_ranges:
+                # create output path
+                output_path = os.path.join(
+                    self.blender_out_directory,
+                    camera,
+                    self._render_range_path(render_range),
+                    self._frame_filename)
+
+                # generate CLI command
+                command = (f"blender "
+                           f"-b \"{self.blender_file_path}\" "
+                           f"-s {render_range.range_start} "
+                           f"-e {render_range.range_end} "
+                           f"-o \"{output_path}\" "
+                           f"-P \"source/blender_script.py\" "
+                           f"-a "
+                           f"-- "
+                           f"--camera '{camera}' "
+                           f"--render-width {render_option.resolution[0]} "
+                           f"--render-height {render_option.resolution[1]} "
+                           f"--render-noise-threshold {render_option.noise_threshold} "
+                           f"--render-max-samples {render_option.max_samples}"
+                           f"{'--overwrite' if self.render_overwrite else ''}")
+
+                # execute the command
+                subprocess.run(command)
