@@ -46,8 +46,6 @@ class Application:
         self.render_options: dict[str, RenderOption] | None = None
         self.render_ranges: dict[str, list[RenderRange]] | None = None
 
-        self.render_frames_total: int = 0
-
         self.blender_framerate: int = 30
         self.blender_out_directory: str = "//tmp/"
 
@@ -138,11 +136,39 @@ class Application:
         self.parse_blender_file(self.blender_file_path)
         self._make_directories()
         self._update_ranges()
+        self._print_information()
 
         try:
             self.begin_render()
         except KeyboardInterrupt:
             print("Exited...")
+
+    def _print_information(self):
+        """
+        Prints out some information about what is going to be rendered
+        """
+
+        # count total number of frames
+        total_render_frames = 0
+        actual_total_render_frames = 0
+        for camera_render_ranges in self.render_ranges.values():
+            for render_range in camera_render_ranges:
+                total_render_frames += render_range.range_end - render_range.range_start
+                actual_total_render_frames += render_range.range_end - render_range.actual_range_start
+
+        # total time
+        total_runtime = total_render_frames / self.blender_framerate
+
+        # get option preset
+        render_option = self.render_options[self.render_quality]
+
+        print("Information:")
+        print(f"\tFrames to render: {total_render_frames} [{actual_total_render_frames}]")
+        print(f"\tTotal animation length: {total_runtime:.2f} sec")
+        print(f"\tRender quality: {self.render_quality}")
+        print(f"\tRender resolution: {render_option.resolution[0]}x{render_option.resolution[1]}")
+        print(f"\tRender noise threshold: {render_option.noise_threshold}")
+        print(f"\tRender max sample count: {render_option.max_samples}")
 
     def _make_directories(self):
         """
