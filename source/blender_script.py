@@ -23,6 +23,7 @@ def parse_args():
     parser.add_argument("--render-noise-threshold", type=float)
     parser.add_argument("--render-max-samples", type=int)
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--viewlayers", type=str)
 
     # parse arguments after the first `--`
     return parser.parse_args(sys.argv[sys.argv.index("--")+1:])
@@ -48,6 +49,13 @@ def main():
 
     # update view layer
     bpy.context.view_layer.update()
+
+    # fetch and activate other view layers
+    if args.viewlayers is not None:
+        for view_layer in args.viewlayers.split(","):
+            view_layer_obj = bpy.context.scene.view_layers.get(view_layer)
+            if view_layer_obj is not None:
+                view_layer_obj.use = True
 
     # update overwrite flag
     bpy.context.scene.render.use_overwrite = args.overwrite

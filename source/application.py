@@ -8,7 +8,7 @@ import bpy
 import json
 import argparse
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -30,6 +30,7 @@ class RenderRange:
 
     range_start: int
     range_end: int
+    view_layers: list[str] = field(default_factory=lambda: [])
     actual_range_start: int = 0
 
 
@@ -216,7 +217,11 @@ class Application:
                             break
 
                 # update the camera range
-                camera_ranges[idx] = RenderRange(render_range.range_start, render_range.range_end, actual_range_start)
+                camera_ranges[idx] = RenderRange(
+                    range_start=render_range.range_start,
+                    range_end=render_range.range_end,
+                    view_layers=render_range.view_layers,
+                    actual_range_start=actual_range_start)
 
             # go through camera render ranges and delete ones with delta <= 0
             idx = 0
@@ -270,6 +275,9 @@ class Application:
                     self._render_range_path(render_range),
                     self._frame_filename)
 
+                # generate view layers arg
+                view_layers = ",".join(render_range.view_layers)
+
                 # generate CLI command
                 command = (f"blender "
                            f"-b \"{self.blender_file_path}\" "
@@ -284,7 +292,8 @@ class Application:
                            f"--render-height {render_option.resolution[1]} "
                            f"--render-noise-threshold {render_option.noise_threshold} "
                            f"--render-max-samples {render_option.max_samples} "
-                           f"{'--overwrite' if self.render_overwrite else ''}")
+                           f"{'--overwrite' if self.render_overwrite else ''} "
+                           f"{f'--viewlayers {view_layers}' if view_layers else ''}")
 
                 # execute the command
                 subprocess.run(command)
