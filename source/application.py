@@ -171,6 +171,23 @@ class Application:
         print(f"\tRender noise threshold: {render_option.noise_threshold}")
         print(f"\tRender max sample count: {render_option.max_samples}")
 
+    def _make_path(self, camera: str, render_range: RenderRange) -> str:
+        """
+        Makes a path
+        :param camera: camera
+        :param render_range: render range
+        :return: path
+        """
+
+        viewlayers = ""
+        if len(render_range.view_layers) > 0:
+            viewlayers = " [" + ",".join(render_range.view_layers) + "]"
+
+        return os.path.join(
+            self.blender_out_directory,
+            camera,
+            self._render_range_path(render_range) + viewlayers)
+
     def _make_directories(self):
         """
         Makes output directories
@@ -182,7 +199,7 @@ class Application:
         # make directories for cameras and camera render ranges
         for camera, camera_render_ranges in self.render_ranges.items():
             for render_range in camera_render_ranges:
-                path = os.path.join(self.blender_out_directory, camera, self._render_range_path(render_range))
+                path = self._make_path(camera, render_range)
                 os.makedirs(path, exist_ok=True)
 
     def _update_ranges(self):
@@ -200,7 +217,7 @@ class Application:
             # go through camera render ranges
             for idx, render_range in enumerate(camera_ranges):
                 # generate directory path to camera and camera range
-                check_path = os.path.join(self.blender_out_directory, camera, self._render_range_path(render_range))
+                check_path = self._make_path(camera, render_range)
 
                 # go through frames and skip frames if they are already present
                 actual_range_start = render_range.range_start
@@ -269,11 +286,7 @@ class Application:
             # go through camera render ranges
             for render_range in camera_ranges:
                 # create output path
-                output_path = os.path.join(
-                    self.blender_out_directory,
-                    camera,
-                    self._render_range_path(render_range),
-                    self._frame_filename)
+                output_path = os.path.join(self._make_path(camera, render_range), self._frame_filename)
 
                 # generate view layers arg
                 view_layers = ",".join(render_range.view_layers)
