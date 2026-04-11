@@ -8,30 +8,7 @@ import bpy
 import json
 import argparse
 import subprocess
-from dataclasses import dataclass, field
-
-
-@dataclass(frozen=True)
-class RenderOption:
-    """
-    Render option
-    """
-
-    resolution: tuple[int, int]
-    noise_threshold: float
-    max_samples: int
-
-
-@dataclass(frozen=True)
-class RenderRange:
-    """
-    Camera range
-    """
-
-    range_start: int
-    range_end: int
-    view_layers: list[str] = field(default_factory=lambda: [])
-    actual_range_start: int = 0
+from datetime import datetime
 
 
 class Application:
@@ -40,18 +17,21 @@ class Application:
     """
 
     def __init__(self):
-        self.blender_file_path: str = ""
+        self.project_path: str = ""
+        self.project_quality: str = "preview"
+        self.project_script: str = ""
 
-        self.render_overwrite: bool = False
-        self.render_quality: str = "preview"
-        self.render_options: dict[str, RenderOption] | None = None
-        self.render_ranges: dict[str, list[RenderRange]] | None = None
-
-        self.blender_framerate: int = 30
         self.blender_out_directory: str = "//tmp/"
+        self.blender_frame_name: str = "{num:0>6}.png"
 
-        self._frame_filepath: str = "{camera}/{range}/"
-        self._frame_filename: str = "######.{ext}"
+        self.render_width: int = -1
+        self.render_height: int = -1
+        self.render_noise_threshold: float = -1
+        self.render_file_overwrite: bool = False
+        self.render_max_samples: int = -1
+        self.render_framerate: int = 30
+
+        self.render_script: dict[str, list[dict]] = {}
 
     def parse_args(self):
         """
@@ -72,7 +52,7 @@ class Application:
         parser.add_argument(
             "--quality",
             help="pick render quality setting",
-            default=self.render_quality)
+            default=self.project_quality)
         parser.add_argument(
             "--overwrite",
             help="overwrite the rendered frames",
@@ -80,71 +60,96 @@ class Application:
 
         args = parser.parse_args()
 
-        # save parsed arguments
-        self.blender_file_path = args.input
-        self.render_quality = args.quality
-        self.render_overwrite = args.overwrite
+        self.project_path = args.input
+        self.project_script = args.script
+        self.project_quality = args.quality
 
-        self.render_options, self.render_ranges = self._parse_script_file(args.script)
+        self.render_file_overwrite = args.overwrite
 
-    @staticmethod
-    def _parse_script_file(path: str) -> tuple[dict, dict]:
+    def parse_project_script(self):
         """
-        Parses script file
-        :param path: path to script file
-        :return: dict
+        Parses project rendering script
         """
 
-        # read script
-        with open(path, "r", encoding="utf-8") as file:
-            script = json.load(file)
+        # open file
+        with open(self.project_script, "r", encoding="utf-8") as file:
+            render_script = json.load(file)
 
-        render_options = {}
-        render_ranges = {}
+        # set rendering defaults
+        render_option = render_script["render_options"][self.project_quality]
+        self.render_width = render_option["resolution"][0]
+        self.render_height = render_option["resolution"][1]
+        self.render_max_samples = render_option["max_samples"]
+        self.render_noise_threshold = render_option["noise_threshold"]
 
-        # parse script
-        # go through options
-        for render_option_name, render_option in script["render_options"].items():
-            # parse options
-            render_options[render_option_name] = RenderOption(*render_option.values())
-        # go through ranges
-        for render_range_camera, render_ranges_list in script["render_ranges"].items():
-            # create list of ranges for camera
-            render_ranges[render_range_camera] = []
-            # append ranges to that list
-            for render_range in render_ranges_list:
-                render_ranges[render_range_camera].append(RenderRange(*render_range))
+        # set rendering script
+        self.render_script = render_script["render_ranges"]
 
-        # return
-        return render_options, render_ranges
-
-    @staticmethod
-    def _render_range_path(render_range: RenderRange) -> str:
+    def parse_blender_file(self):
         """
-        Returns render range path
-        :param render_range: render range
-        :return: path
+        Parses blender file
         """
 
-        return f"{render_range.range_start}-{render_range.range_end}"
+        # open blender file
+        bpy.ops.wm.open_mainfile(filepath=self.project_path)
 
-    def run(self):
+        # fetch basic info
+        self.render_framerate: int = bpy.context.scene.render.fps
+        self.blender_out_directory: str = bpy.context.scene.render.filepath
+
+        # make path
+        self.blender_out_directory = (self.blender_out_directory
+                                      .replace("\\", "/")
+                                      .replace("//", os.path.dirname(self.project_path) + "/"))
+
+        # check camera presence
+        for camera in self.render_script.keys():
+            if not bpy.data.objects.get(camera):
+                raise KeyError(f"Missing camera with name '{camera}'")
+
+    def directory_path(self, camera: str, frame_range: dict) -> str:
         """
-        Runs the application
+        Creates a path to directory using camera parameters
+        :param camera: camera name
+        :param frame_range: camera render script parameters
+        :return: path to directory
         """
 
-        self.parse_args()
-        self.parse_blender_file(self.blender_file_path)
-        self._make_directories()
-        self._update_ranges()
-        self._print_information()
+        camera_range = f"{frame_range['start']}-{frame_range['end']}"
 
-        try:
-            self.begin_render()
-        except KeyboardInterrupt:
-            print("Exited...")
+        camera_viewlayers = ""
+        if "viewlayers" in frame_range:
+            camera_viewlayers = f" [{','.join(x for x in frame_range['viewlayers'])}]"
 
-    def _print_information(self):
+        return os.path.join(self.blender_out_directory, camera, camera_range + camera_viewlayers)
+
+    def create_output_directories(self):
+        """
+        Creates frame output directories
+        """
+
+        # create output directories
+        for camera, frame_ranges in self.render_script.items():
+            for frame_range in frame_ranges:
+                path = self.directory_path(camera, frame_range)
+                os.makedirs(path, exist_ok=True)
+
+    def update_render_ranges(self):
+        """
+        Updates internal render ranges when overwriting is disabled
+        """
+
+        for camera, frame_ranges in self.render_script.items():
+            for frame_range in frame_ranges:
+                path = self.directory_path(camera, frame_range)
+                frame_range["initial_start"] = frame_range["start"]
+                for i in range(frame_range["start"], frame_range["end"] + 1):
+                    if os.path.isfile(os.path.join(path, self.blender_frame_name.format(num=i))):
+                        frame_range["start"] = i
+                    else:
+                        break
+
+    def print_information(self):
         """
         Prints out some information about what is going to be rendered
         """
@@ -152,161 +157,110 @@ class Application:
         # count total number of frames
         total_render_frames = 0
         actual_total_render_frames = 0
-        for camera_render_ranges in self.render_ranges.values():
-            for render_range in camera_render_ranges:
-                total_render_frames += render_range.range_end - render_range.range_start
-                actual_total_render_frames += render_range.range_end - render_range.actual_range_start
+        for camera, frame_ranges in self.render_script.items():
+            for frame_range in frame_ranges:
+                total_render_frames += frame_range["end"] - frame_range["start"]
+                actual_total_render_frames += frame_range["end"] - frame_range["initial_start"]
 
         # total time
-        total_runtime = total_render_frames / self.blender_framerate
-
-        # get option preset
-        render_option = self.render_options[self.render_quality]
+        total_runtime = total_render_frames / self.render_framerate
+        total_runtime_actual = actual_total_render_frames / self.render_framerate
 
         print("Information:")
         print(f"\tFrames to render: {total_render_frames} [{actual_total_render_frames}]")
-        print(f"\tTotal animation length: {total_runtime:.2f} sec")
-        print(f"\tRender quality: {self.render_quality}")
-        print(f"\tRender resolution: {render_option.resolution[0]}x{render_option.resolution[1]}")
-        print(f"\tRender noise threshold: {render_option.noise_threshold}")
-        print(f"\tRender max sample count: {render_option.max_samples}")
+        print(f"\tTotal animation length: {total_runtime:.2f} [{total_runtime_actual:.2f}] sec")
+        print(f"\tRender quality: {self.project_quality}")
+        print(f"\tRender resolution: {self.render_width}x{self.render_height}")
+        print(f"\tRender noise threshold: {self.render_noise_threshold}")
+        print(f"\tRender max sample count: {self.render_max_samples}")
 
-    def _make_path(self, camera: str, render_range: RenderRange) -> str:
+    def run(self):
         """
-        Makes a path
-        :param camera: camera
-        :param render_range: render range
-        :return: path
+        Runs the application
         """
 
-        viewlayers = ""
-        if len(render_range.view_layers) > 0:
-            viewlayers = " [" + ",".join(render_range.view_layers) + "]"
+        self.parse_args()
+        self.parse_project_script()
+        self.parse_blender_file()
+        self.create_output_directories()
 
-        return os.path.join(
-            self.blender_out_directory,
-            camera,
-            self._render_range_path(render_range) + viewlayers)
+        if not self.render_file_overwrite:
+            self.update_render_ranges()
 
-    def _make_directories(self):
+        self.print_information()
+        self.begin_render()
+
+    @staticmethod
+    def quick_log(new_line: str):
         """
-        Makes output directories
-        """
-
-        # make main output directory
-        os.makedirs(self.blender_out_directory, exist_ok=True)
-
-        # make directories for cameras and camera render ranges
-        for camera, camera_render_ranges in self.render_ranges.items():
-            for render_range in camera_render_ranges:
-                path = self._make_path(camera, render_range)
-                os.makedirs(path, exist_ok=True)
-
-    def _update_ranges(self):
-        """
-        Updates ranges for rendering
+        Quick render log
+        :param new_line: line to add to it
         """
 
-        # generate f-string file format
-        file_format = (self._frame_filename
-                       .replace("#", f"{{num:0>{self._frame_filename.count('#')}}}", 1)
-                       .replace("#", ""))
-
-        # go through cameras
-        for camera, camera_ranges in self.render_ranges.items():
-            # go through camera render ranges
-            for idx, render_range in enumerate(camera_ranges):
-                # generate directory path to camera and camera range
-                check_path = self._make_path(camera, render_range)
-
-                # go through frames and skip frames if they are already present
-                actual_range_start = render_range.range_start
-                if not self.render_overwrite:
-                    for frame in range(render_range.range_start, render_range.range_end + 1):
-                        # create filepath to check
-                        filepath = os.path.join(check_path, file_format.format(num=frame))
-
-                        # if frame with in that range is already present -> increment the actual range start to skip it
-                        # during rendering phase
-                        if os.path.isfile(filepath):
-                            actual_range_start += 1
-                        else:
-                            break
-
-                # update the camera range
-                camera_ranges[idx] = RenderRange(
-                    range_start=render_range.range_start,
-                    range_end=render_range.range_end,
-                    view_layers=render_range.view_layers,
-                    actual_range_start=actual_range_start)
-
-            # go through camera render ranges and delete ones with delta <= 0
-            idx = 0
-            while idx < len(camera_ranges):
-                if camera_ranges[idx].range_end - camera_ranges[idx].actual_range_start <= 0:
-                    camera_ranges.pop(idx)
-                    idx -= 1
-                idx += 1
-
-    def parse_blender_file(self, path: str):
-        """
-        Parses blender file
-        :param path: path to blender file
-        """
-
-        # open blender file
-        bpy.ops.wm.open_mainfile(filepath=path)
-
-        # fetch basic info
-        self.blender_framerate: int = bpy.context.scene.render.fps
-        self.blender_out_directory: str = bpy.context.scene.render.filepath
-        self._frame_filename = self._frame_filename.format(
-            ext=bpy.context.scene.render.image_settings.file_format.lower())
-
-        # make path
-        self.blender_out_directory = (self.blender_out_directory
-                                      .replace("\\", "/")
-                                      .replace("//", os.path.dirname(path) + "/"))
-
-        # check camera presence
-        for camera in self.render_ranges.keys():
-            if not bpy.data.objects.get(camera):
-                raise KeyError(f"Missing camera with name '{camera}'")
+        with open("render.log", "a", encoding="utf-8") as file:
+            file.write(datetime.now().strftime("[%d/%m/%Y %H:%M:%S] ") + new_line + "\n")
 
     def begin_render(self):
         """
         Starts the actual rendering
         """
 
-        # get option preset
-        render_option = self.render_options[self.render_quality]
+        self.quick_log("RENDER START")
+        for camera, frame_ranges in self.render_script.items():
+            for frame_range in frame_ranges:
+                # process overrides
+                render_settings = {
+                    "start": frame_range["start"],
+                    "end": frame_range["end"],
+                    "render_width": self.render_width,
+                    "render_height": self.render_height,
+                    "render_max_samples": self.render_max_samples,
+                    "render_noise_threshold": self.render_noise_threshold,
+                    "file_overwrite": self.render_file_overwrite}
 
-        # go through cameras
-        for camera, camera_ranges in self.render_ranges.items():
-            # go through camera render ranges
-            for render_range in camera_ranges:
-                # create output path
-                output_path = os.path.join(self._make_path(camera, render_range), self._frame_filename)
+                # if override is present
+                if frame_range.get("override"):
+                    # iterate over known render settings
+                    for known_setting in render_settings.keys():
+                        # if known setting exists in overrides => override the known setting
+                        if known_setting in frame_range["override"]:
+                            render_settings[known_setting] = frame_range["override"][known_setting]
 
-                # generate view layers arg
-                view_layers = ",".join(render_range.view_layers)
+                # if frame are overwritten
+                if render_settings["file_overwrite"]:
+                    render_settings["start"] = frame_range["initial_start"]
+
+                # skip zero frame range
+                if render_settings["end"] - render_settings["start"] <= 0:
+                    continue
+
+                # generate output path
+                output_path = os.path.join(
+                    self.directory_path(camera, frame_range),
+                    self.blender_frame_name.format(num=0).replace("0", "#"))
+
+                # generate viewlayers
+                viewlayers = ",".join(frame_range.get("viewlayers", []))
 
                 # generate CLI command
                 command = (f"blender "
-                           f"-b \"{self.blender_file_path}\" "
-                           f"-s {render_range.actual_range_start} "
-                           f"-e {render_range.range_end} "
+                           f"-b \"{self.project_path}\" "
+                           f"-s {render_settings['start']} "
+                           f"-e {render_settings['end']} "
                            f"-o \"{output_path}\" "
                            f"-P \"source/blender_script.py\" "
                            f"-a "
                            f"-- "
                            f"--camera '{camera}' "
-                           f"--render-width {render_option.resolution[0]} "
-                           f"--render-height {render_option.resolution[1]} "
-                           f"--render-noise-threshold {render_option.noise_threshold} "
-                           f"--render-max-samples {render_option.max_samples} "
-                           f"{'--overwrite' if self.render_overwrite else ''} "
-                           f"{f'--viewlayers {view_layers}' if view_layers else ''}")
+                           f"--render-width {render_settings['render_width']} "
+                           f"--render-height {render_settings['render_height']} "
+                           f"--render-noise-threshold {render_settings['render_noise_threshold']} "
+                           f"--render-max-samples {render_settings['render_max_samples']} "
+                           f"{'--overwrite' if render_settings['file_overwrite'] else ''} "
+                           f"{f'--viewlayers {viewlayers}' if viewlayers else ''}")
+
+                self.quick_log(f"EXECUTING `{command}`")
 
                 # execute the command
                 subprocess.run(command)
+        self.quick_log("RENDER END")
