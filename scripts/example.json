@@ -13,11 +13,21 @@
   },
   "render_ranges": {
     "Camera.Front": [
-      [1, 100],
-      [150, 200]
+      {
+        "start": 1,
+        "end": 100
+      },
+      {
+        "start": 150,
+        "end": 200
+      }
     ],
     "Camera.Side": [
-      [200, 250, ["ViewLayer.001"]]
+      {
+        "start": 200,
+        "end": 250,
+        "viewlayers": ["ViewLayer.001"]
+      }
     ]
   }
 }
