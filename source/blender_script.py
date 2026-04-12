@@ -60,6 +60,7 @@ def main():
 
     # update view layer
     bpy.context.view_layer.update()
+    bpy.context.evaluated_depsgraph_get().update()
 
     # update overwrite flag
     bpy.context.scene.render.use_overwrite = args.overwrite
