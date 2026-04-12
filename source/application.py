@@ -115,7 +115,8 @@ class Application:
         :return: path to directory
         """
 
-        camera_range = f"{frame_range['start']}-{frame_range['end']}"
+        frame_start = frame_range.get("initial_start", frame_range["start"])
+        camera_range = f"{frame_start}-{frame_range['end']}"
 
         camera_viewlayers = ""
         if "viewlayers" in frame_range:
@@ -188,7 +189,11 @@ class Application:
             self.update_render_ranges()
 
         self.print_information()
-        self.begin_render()
+
+        try:
+            self.begin_render()
+        except KeyboardInterrupt:
+            self.quick_log("RENDER INTERRUPT")
 
     def quick_log(self, new_line: str):
         """
