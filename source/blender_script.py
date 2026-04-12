@@ -47,15 +47,19 @@ def main():
     # update max samples
     bpy.context.scene.cycles.samples = args.render_max_samples
 
-    # update view layer
-    bpy.context.view_layer.update()
+    # disable all viewlayers
+    for view_layer in bpy.context.scene.view_layers:
+        view_layer.use = False
 
-    # fetch and activate other view layers
+    # fetch and activate set viewlayers
     if args.viewlayers is not None:
         for view_layer in args.viewlayers.split(","):
             view_layer_obj = bpy.context.scene.view_layers.get(view_layer)
             if view_layer_obj is not None:
                 view_layer_obj.use = True
+
+    # update view layer
+    bpy.context.view_layer.update()
 
     # update overwrite flag
     bpy.context.scene.render.use_overwrite = args.overwrite
