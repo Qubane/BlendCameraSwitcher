@@ -196,7 +196,7 @@ class Application:
         :param new_line: line to add to it
         """
 
-        path = os.path.join(self.project_path, "render.log")
+        path = os.path.join(os.path.dirname(self.project_path), "render.log")
         with open(path, "a", encoding="utf-8") as file:
             file.write(datetime.now().strftime("[%d/%m/%Y %H:%M:%S] ") + new_line + "\n")
 
