@@ -190,14 +190,14 @@ class Application:
         self.print_information()
         self.begin_render()
 
-    @staticmethod
-    def quick_log(new_line: str):
+    def quick_log(self, new_line: str):
         """
         Quick render log
         :param new_line: line to add to it
         """
 
-        with open("render.log", "a", encoding="utf-8") as file:
+        path = os.path.join(self.project_path, "render.log")
+        with open(path, "a", encoding="utf-8") as file:
             file.write(datetime.now().strftime("[%d/%m/%Y %H:%M:%S] ") + new_line + "\n")
 
     def begin_render(self):
