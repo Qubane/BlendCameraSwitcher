@@ -3,12 +3,14 @@
     "preview": {
       "resolution": [1280, 720],
       "noise_threshold": 0.2,
-      "max_samples": 64
+      "max_samples": 64,
+      "default_viewlayers": ["ViewLayer"]
     },
     "final": {
       "resolution": [1920, 1080],
       "noise_threshold": 0.02,
-      "max_samples": 4096
+      "max_samples": 4096,
+      "default_viewlayers": ["ViewLayer"]
     }
   },
   "render_ranges": {
@@ -26,7 +28,7 @@
       {
         "start": 200,
         "end": 250,
-        "viewlayers": ["ViewLayer.001"]
+        "viewlayers": ["-", "ViewLayer.001"]
       }
     ]
   }
