@@ -6,6 +6,7 @@ Main application file
 import os
 import bpy
 import json
+import copy
 import argparse
 import subprocess
 from datetime import datetime
@@ -29,6 +30,7 @@ class Application:
         self.render_noise_threshold: float = -1
         self.render_file_overwrite: bool = False
         self.render_max_samples: int = -1
+        self.render_default_viewlayers: list[str] = []
         self.render_framerate: int = 30
 
         self.render_script: dict[str, list[dict]] = {}
@@ -81,6 +83,7 @@ class Application:
         self.render_height = render_option["resolution"][1]
         self.render_max_samples = render_option["max_samples"]
         self.render_noise_threshold = render_option["noise_threshold"]
+        self.render_default_viewlayers = render_option["default_viewlayers"]
 
         # set rendering script
         self.render_script = render_script["render_ranges"]
@@ -221,15 +224,24 @@ class Application:
                     "render_height": self.render_height,
                     "render_max_samples": self.render_max_samples,
                     "render_noise_threshold": self.render_noise_threshold,
-                    "file_overwrite": self.render_file_overwrite}
+                    "file_overwrite": self.render_file_overwrite,
+                    "viewlayers": self.render_default_viewlayers}
 
-                # if override is present
-                if frame_range.get("override"):
-                    # iterate over known render settings
-                    for known_setting in render_settings.keys():
-                        # if known setting exists in overrides => override the known setting
-                        if known_setting in frame_range["override"]:
-                            render_settings[known_setting] = frame_range["override"][known_setting]
+                # set overrides
+                for key, value in frame_range.items():
+                    if key == "start" or key == "end":
+                        continue
+                    render_settings[key] = copy.copy(value)
+
+                    # viewlayers
+                    if key == "viewlayers":
+                        flag_set = False
+                        for viewlayer in render_settings[key][::]:
+                            if viewlayer == "-":
+                                render_settings[key].remove(viewlayer)
+                                flag_set = True
+                        if not flag_set:
+                            render_settings[key] += self.render_default_viewlayers
 
                 # if frame are overwritten
                 if render_settings["file_overwrite"]:
@@ -245,7 +257,7 @@ class Application:
                     self.blender_frame_name.format(num=0).replace("0", "#"))
 
                 # generate viewlayers
-                viewlayers = ",".join(frame_range.get("viewlayers", []))
+                viewlayers = ",".join(render_settings["viewlayers"])
 
                 # generate CLI command
                 command = (f"blender "
