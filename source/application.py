@@ -23,7 +23,7 @@ class Application:
         self.project_script: str = ""
 
         self.blender_out_directory: str = "//tmp/"
-        self.blender_frame_name: str = "{num:0>6}.png"
+        self.blender_frame_name: str = "{num:0>6}"
 
         self.render_width: int = -1
         self.render_height: int = -1
@@ -97,8 +97,9 @@ class Application:
         bpy.ops.wm.open_mainfile(filepath=self.project_path)
 
         # fetch basic info
-        self.render_framerate: int = bpy.context.scene.render.fps
-        self.blender_out_directory: str = bpy.context.scene.render.filepath
+        self.render_framerate = bpy.context.scene.render.fps
+        self.blender_out_directory = bpy.context.scene.render.filepath
+        self.blender_frame_name += bpy.context.scene.render.file_extension.lower()
 
         # make path
         self.blender_out_directory = (self.blender_out_directory
