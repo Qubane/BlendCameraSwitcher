@@ -58,8 +58,13 @@ def main():
             if view_layer_obj is not None:
                 view_layer_obj.use = True
 
+    # # jank fix
+    # if len(args.viewlayers.split(",")) > 1:
+    #     bpy.context.scene.render.use_persistent_data = False
+    # else:
+    #     bpy.context.scene.render.use_persistent_data = True
+
     # update view layer
-    bpy.context.view_layer.update()
     bpy.context.evaluated_depsgraph_get().update()
 
     # update overwrite flag
