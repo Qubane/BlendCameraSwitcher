@@ -264,7 +264,8 @@ class Application:
 
                 # encode python script
                 python_code = base64.b64encode(render_settings["python"].encode("UTF-8")).decode("ASCII")
-                python_code = f"'{python_code}'"
+                if python_code:
+                    python_code = f"'{python_code}'"
 
                 # generate CLI command
                 command = (f"blender "

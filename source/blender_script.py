@@ -73,8 +73,9 @@ def main():
     bpy.context.scene.render.use_overwrite = args.overwrite
 
     # decode and execute additional python script
-    python_code = base64.b64decode(args.python.encode("ASCII")).decode("UTF-8")
-    exec(python_code)
+    if args.python:
+        python_code = base64.b64decode(args.python.encode("ASCII")).decode("UTF-8")
+        exec(python_code)
 
 
 if __name__ == "__main__":
