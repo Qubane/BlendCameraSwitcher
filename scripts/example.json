@@ -14,17 +14,20 @@
     }
   },
   "render_ranges": {
-    "Camera.Front": [
+    "Camera": [
       {
         "start": 1,
-        "end": 100
+        "end": 100,
+        "render_width": 420,
+        "render_height": 69
       },
       {
         "start": 150,
-        "end": 200
+        "end": 200,
+        "python": "bpy.data.objects['Cube'].hide_render = True"
       }
     ],
-    "Camera.Side": [
+    "Camera.001": [
       {
         "start": 200,
         "end": 250,
