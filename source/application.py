@@ -7,6 +7,7 @@ import os
 import bpy
 import json
 import copy
+import base64
 import argparse
 import subprocess
 from datetime import datetime
@@ -226,7 +227,8 @@ class Application:
                     "render_max_samples": self.render_max_samples,
                     "render_noise_threshold": self.render_noise_threshold,
                     "file_overwrite": self.render_file_overwrite,
-                    "viewlayers": self.render_default_viewlayers}
+                    "viewlayers": self.render_default_viewlayers,
+                    "python": ""}
 
                 # set overrides
                 for key, value in frame_range.items():
@@ -260,6 +262,10 @@ class Application:
                 # generate viewlayers
                 viewlayers = ",".join(render_settings["viewlayers"])
 
+                # encode python script
+                python_code = base64.b64encode(render_settings["python"].encode("UTF-8")).decode("ASCII")
+                python_code = f"'{python_code}'"
+
                 # generate CLI command
                 command = (f"blender "
                            f"-b \"{self.project_path}\" "
@@ -275,7 +281,8 @@ class Application:
                            f"--render-noise-threshold {render_settings['render_noise_threshold']} "
                            f"--render-max-samples {render_settings['render_max_samples']} "
                            f"{'--overwrite' if render_settings['file_overwrite'] else ''} "
-                           f"{f'--viewlayers {viewlayers}' if viewlayers else ''}")
+                           f"{f'--viewlayers {viewlayers}' if viewlayers else ''} "
+                           f"{f'--python {python_code}' if python_code else ''} ")
 
                 self.quick_log(f"EXECUTING `{command}`")
 

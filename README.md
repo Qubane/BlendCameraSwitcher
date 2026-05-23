@@ -31,3 +31,4 @@ Assign ranges of frames that need to be rendered
       - `"render_noise_threshold"`: `0.1` - overwrite noise threshold
       - `"file_overwrite"`: `true / false` - enable / disable file overwrite
       - `"viewlayers"`: `["-", "ViewLayer.001"]` - additional viewlayers, the `"-"` disables all default viewlayers defined by the render option
+      - `"python"`: `"bpy.data.objects['Cube'].hide_render = True"` - additional python script per camera angle

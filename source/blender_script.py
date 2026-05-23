@@ -5,6 +5,7 @@ Script that will be passed to blender in CLI command
 
 import bpy
 import sys
+import base64
 import argparse
 
 
@@ -24,6 +25,7 @@ def parse_args():
     parser.add_argument("--render-max-samples", type=int)
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--viewlayers", type=str)
+    parser.add_argument("--python", type=str)
 
     # parse arguments after the first `--`
     return parser.parse_args(sys.argv[sys.argv.index("--")+1:])
@@ -69,6 +71,10 @@ def main():
 
     # update overwrite flag
     bpy.context.scene.render.use_overwrite = args.overwrite
+
+    # decode and execute additional python script
+    python_code = base64.b64decode(args.python.encode("ASCII")).decode("UTF-8")
+    exec(python_code)
 
 
 if __name__ == "__main__":
