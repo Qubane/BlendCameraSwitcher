@@ -66,9 +66,6 @@ def main():
     # else:
     #     bpy.context.scene.render.use_persistent_data = True
 
-    # update view layer
-    bpy.context.evaluated_depsgraph_get().update()
-
     # update overwrite flag
     bpy.context.scene.render.use_overwrite = args.overwrite
 
@@ -76,6 +73,9 @@ def main():
     if args.python:
         python_code = base64.b64decode(args.python.encode("ASCII")).decode("UTF-8")
         exec(python_code)
+
+    # update view layer
+    bpy.context.evaluated_depsgraph_get().update()
 
 
 if __name__ == "__main__":
