@@ -194,6 +194,8 @@ class Application:
             self.update_render_ranges()
 
         self.print_information()
+        if input("Continue? (Y/N) > ").lower() != "y":
+            return
 
         try:
             self.begin_render()
