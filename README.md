@@ -2,9 +2,9 @@
 Assign ranges of frames that need to be rendered
 
 # How to use
-- Use python 3.11
-- Was tested with blender 5.0 and 5.1
-- To run the render use `python3.11 main.py [args]`
+- Use python 3.13
+- Was tested with blender 5.1.2
+- To run the render use `python3.13 main.py [args]`
 
 ## Command line arguments
 - `-i / --input` - .blend project
