@@ -2,7 +2,7 @@
 Assign ranges of frames that need to be rendered
 
 # How to use
-- Use python 3.13
+- Used python 3.11+
 - Was tested with blender 5.1.2
 - To run the render use `python3.13 main.py [args]`
 
@@ -11,6 +11,7 @@ Assign ranges of frames that need to be rendered
 - `-s / --script` - camera sequencing script
 - `--quality` - quality preset that will be used (defined in sequencing script)
 - `--overwrite` - enable frame overwriting
+- `-a / --accept` - skip the render question
 
 ## Sequencing script
 - Basic example sequencing script is provided in `scripts/example.json`

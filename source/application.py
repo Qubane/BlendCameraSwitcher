@@ -36,6 +36,8 @@ class Application:
 
         self.render_script: dict[str, list[dict]] = {}
 
+        self.misc_accept: bool = False
+
     def parse_args(self):
         """
         Parses CLI arguments
@@ -60,6 +62,10 @@ class Application:
             "--overwrite",
             help="overwrite the rendered frames",
             action='store_true')
+        parser.add_argument(
+            "-a", "--accept",
+            help="automatically accept the render question, ignoring it",
+            action="store_true")
 
         args = parser.parse_args()
 
@@ -68,6 +74,8 @@ class Application:
         self.project_quality = args.quality
 
         self.render_file_overwrite = args.overwrite
+
+        self.misc_accept = args.accept
 
     def parse_project_script(self):
         """
@@ -194,8 +202,9 @@ class Application:
             self.update_render_ranges()
 
         self.print_information()
-        if input("Continue? (Y/N) > ").lower() != "y":
-            return
+        if not self.misc_accept:
+            if input("Continue? (Y/N) > ").lower() != "y":
+                return
 
         try:
             self.begin_render()
