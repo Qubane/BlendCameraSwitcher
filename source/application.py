@@ -10,6 +10,7 @@ import copy
 import base64
 import argparse
 import subprocess
+import playsound3
 from datetime import datetime
 
 
@@ -301,3 +302,4 @@ class Application:
                 # execute the command
                 subprocess.run(command)
         self.quick_log("RENDER END")
+        playsound3.playsound("sounds/chime.wav")
