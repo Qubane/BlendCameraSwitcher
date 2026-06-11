@@ -75,6 +75,9 @@ def main():
         exec(python_code)
 
     # update view layer
+    for view_layer in bpy.context.scene.view_layers:
+        if view_layer.use is True:
+            view_layer.update()
     bpy.context.evaluated_depsgraph_get().update()
 
 
