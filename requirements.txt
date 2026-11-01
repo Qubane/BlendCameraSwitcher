@@ -1,2 +1,2 @@
-bpy~=5.1.2
-playsound3~=3.3.1
+bpy~=5.2.3
+playsound3~=3.3.2
